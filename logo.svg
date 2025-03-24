@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="90" fill="#6d4aff" />
+  
+  <!-- 内部白色圆形 -->
+  <circle cx="100" cy="100" r="75" fill="#ffffff" />
+  
+  <!-- 字母A -->
+  <path d="M60,130 L75,70 L85,70 L100,130 L90,130 L87,120 L73,120 L70,130 Z M76,90 L78,110 L84,110 L82,90 Z" fill="#ff5757" />
+  
+  <!-- 字母C -->
+  <path d="M120,70 C135,70 145,80 145,95 L135,95 C135,85 130,80 120,80 C110,80 105,90 105,100 C105,110 110,120 120,120 C130,120 135,115 135,105 L145,105 C145,120 135,130 120,130 C105,130 95,115 95,100 C95,85 105,70 120,70 Z" fill="#4dbbff" />
+  
+  <!-- 字母G -->
+  <path d="M160,70 C175,70 185,80 185,95 L175,95 C175,85 170,80 160,80 C150,80 145,90 145,100 C145,110 150,120 160,120 C168,120 175,115 175,110 L165,110 L165,100 L185,100 L185,130 L175,130 L175,120 C170,127 165,130 160,130 C145,130 135,115 135,100 C135,85 145,70 160,70 Z" fill="#65db65" />
+  
+  <!-- 导航指针 -->
+  <path d="M100,40 L110,60 L90,60 Z" fill="#ff9e3e" />
+  <circle cx="100" cy="40" r="5" fill="#ff9e3e" />
+  
+  <!-- 装饰性线条 -->
+  <path d="M30,100 L50,100" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+  <path d="M150,40 L170,40" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+  <path d="M150,160 L170,160" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+  <path d="M40,160 L60,160" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+</svg>
