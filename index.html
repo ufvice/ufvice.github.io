@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的网址导航</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin: 20px 0;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 300;
+            font-size: 2.5rem;
+        }
+        
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        
+        .category {
+            flex: 1;
+            min-width: 250px;
+            margin-bottom: 20px;
+        }
+        
+        .category h2 {
+            border-bottom: 2px solid #4a76a8;
+            padding-bottom: 10px;
+            color: #4a76a8;
+            font-weight: 500;
+        }
+        
+        .links {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .link-item {
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .link-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .link-item a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #333;
+            padding: 15px 10px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .link-item a:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            background-color: #f8f9fa;
+        }
+        
+        .link-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            color: #4a76a8;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .search-container {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .search-box {
+            width: 70%;
+            max-width: 600px;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            outline: none;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .search-input:focus {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .search-button {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background: #4a76a8;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: background 0.3s ease;
+        }
+        
+        .search-button:hover {
+            background: #3a5f88;
+        }
+        
+        @media (max-width: 768px) {
+            .categories {
+                flex-direction: column;
+            }
+            
+            .category {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>我的网址导航</h1>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="搜索..." autocomplete="off">
+                <button class="search-button">🔍</button>
+            </div>
+        </div>
+        
+        <div class="categories">
+            <div class="category">
+                <h2>常用工具</h2>
+                <div class="links">
+                    <div class="link-item">
+                        <a href="https://www.baidu.com" target="_blank">
+                            <div class="link-icon">🔍</div>
+                            <span>百度</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.google.com" target="_blank">
+                            <div class="link-icon">🌐</div>
+                            <span>Google</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://mail.163.com" target="_blank">
+                            <div class="link-icon">✉️</div>
+                            <span>163邮箱</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://mail.qq.com" target="_blank">
+                            <div class="link-icon">📧</div>
+                            <span>QQ邮箱</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="category">
+                <h2>社交媒体</h2>
+                <div class="links">
+                    <div class="link-item">
+                        <a href="https://weibo.com" target="_blank">
+                            <div class="link-icon">👥</div>
+                            <span>微博</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://wx.qq.com" target="_blank">
+                            <div class="link-icon">💬</div>
+                            <span>微信网页版</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.zhihu.com" target="_blank">
+                            <div class="link-icon">❓</div>
+                            <span>知乎</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.douban.com" target="_blank">
+                            <div class="link-icon">📚</div>
+                            <span>豆瓣</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="categories">
+            <div class="category">
+                <h2>购物网站</h2>
+                <div class="links">
+                    <div class="link-item">
+                        <a href="https://www.taobao.com" target="_blank">
+                            <div class="link-icon">🛒</div>
+                            <span>淘宝</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.jd.com" target="_blank">
+                            <div class="link-icon">🛍️</div>
+                            <span>京东</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.suning.com" target="_blank">
+                            <div class="link-icon">📱</div>
+                            <span>苏宁</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.amazon.cn" target="_blank">
+                            <div class="link-icon">📦</div>
+                            <span>亚马逊</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="category">
+                <h2>娱乐休闲</h2>
+                <div class="links">
+                    <div class="link-item">
+                        <a href="https://www.bilibili.com" target="_blank">
+                            <div class="link-icon">📺</div>
+                            <span>哔哩哔哩</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://v.qq.com" target="_blank">
+                            <div class="link-icon">🎬</div>
+                            <span>腾讯视频</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://www.iqiyi.com" target="_blank">
+                            <div class="link-icon">🎥</div>
+                            <span>爱奇艺</span>
+                        </a>
+                    </div>
+                    <div class="link-item">
+                        <a href="https://music.163.com" target="_blank">
+                            <div class="link-icon">🎵</div>
+                            <span>网易云音乐</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 我的网址导航 - 个人收藏的网址链接</p>
+        </div>
+    </div>
+</body>
+</html>
