@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jupyter Notebook 内容提取器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .drop-area {
+            border: 3px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .drop-area:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .drop-area.active {
+            background-color: #e1f5fe;
+            border-color: #2196f3;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .output-container {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 5px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f7f7f7;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        pre {
+            background-color: #f7f7f7;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .file-info {
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .notebook-cell {
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .cell-header {
+            background-color: #f0f0f0;
+            padding: 8px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .cell-content {
+            padding: 15px;
+        }
+        
+        .markdown-cell {
+            background-color: #fff;
+        }
+        
+        .code-cell {
+            background-color: #f8f8f8;
+        }
+        
+        .cell-type {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: white;
+        }
+        
+        .cell-type-markdown {
+            background-color: #27ae60;
+        }
+        
+        .cell-type-code {
+            background-color: #3498db;
+        }
+        
+        .download-btn {
+            background-color: #27ae60;
+        }
+        
+        .download-btn:hover {
+            background-color: #219653;
+        }
+        
+        .copy-btn {
+            background-color: #9b59b6;
+            margin-left: 10px;
+        }
+        
+        .copy-btn:hover {
+            background-color: #8e44ad;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            border: 1px solid #e74c3c;
+            border-radius: 4px;
+            background-color: #ffeaea;
+            margin-top: 20px;
+        }
+        
+        .tooltip {
+            position: fixed;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            z-index: 999;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .drop-area {
+                padding: 20px;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Jupyter Notebook 内容提取器</h1>
+    
+    <div class="container">
+        <div id="dropArea" class="drop-area">
+            <p>拖拽 Jupyter Notebook (.ipynb) 文件到这里，或者</p>
+            <input type="file" id="fileInput" class="file-input" accept=".ipynb">
+            <button id="fileSelectBtn" class="btn">选择文件</button>
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        
+        <div id="outputContainer" class="output-container">
+            <div id="fileInfo" class="file-info"></div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="structured">结构化视图</div>
+                <div class="tab" data-tab="python">Python代码</div>
+                <div class="tab" data-tab="text">纯文本内容</div>
+                <div class="tab" data-tab="code">纯代码内容</div>
+                <div class="tab" data-tab="raw">原始JSON</div>
+            </div>
+            
+            <div id="structuredTab" class="tab-content active">
+                <div id="structuredContent"></div>
+                <div class="button-group">
+                    <button id="downloadHtmlBtn" class="btn download-btn">下载HTML</button>
+                </div>
+            </div>
+            
+            <div id="pythonTab" class="tab-content">
+                <pre id="pythonContent"></pre>
+                <div class="button-group">
+                    <button id="downloadPythonBtn" class="btn download-btn">下载Python文件</button>
+                    <button id="copyPythonBtn" class="btn copy-btn">复制到剪贴板</button>
+                </div>
+            </div>
+            
+            <div id="textTab" class="tab-content">
+                <pre id="textContent"></pre>
+                <div class="button-group">
+                    <button id="downloadTextBtn" class="btn download-btn">下载文本</button>
+                    <button id="copyTextBtn" class="btn copy-btn">复制到剪贴板</button>
+                </div>
+            </div>
+            
+            <div id="codeTab" class="tab-content">
+                <pre id="codeContent"></pre>
+                <div class="button-group">
+                    <button id="downloadCodeBtn" class="btn download-btn">下载代码</button>
+                    <button id="copyCodeBtn" class="btn copy-btn">复制到剪贴板</button>
+                </div>
+            </div>
+            
+            <div id="rawTab" class="tab-content">
+                <pre id="rawContent"></pre>
+                <div class="button-group">
+                    <button id="downloadRawBtn" class="btn download-btn">下载JSON</button>
+                    <button id="copyRawBtn" class="btn copy-btn">复制到剪贴板</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip" class="tooltip"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileSelectBtn = document.getElementById('fileSelectBtn');
+            const outputContainer = document.getElementById('outputContainer');
+            const fileInfo = document.getElementById('fileInfo');
+            const structuredContent = document.getElementById('structuredContent');
+            const pythonContent = document.getElementById('pythonContent');
+            const textContent = document.getElementById('textContent');
+            const codeContent = document.getElementById('codeContent');
+            const rawContent = document.getElementById('rawContent');
+            const errorMessage = document.getElementById('errorMessage');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const tooltip = document.getElementById('tooltip');
+            
+            let notebookData = null;
+            
+            // 绑定文件选择按钮点击事件
+            fileSelectBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 文件选择器变更事件
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    processFile(file);
+                }
+            });
+            
+            // 设置拖拽相关事件
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            // 拖拽进入和离开时的视觉反馈
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, function() {
+                    dropArea.classList.add('active');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, function() {
+                    dropArea.classList.remove('active');
+                }, false);
+            });
+            
+            // 处理文件拖放
+            dropArea.addEventListener('drop', function(e) {
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    processFile(file);
+                }
+            }, false);
+            
+            // 处理文件
+            function processFile(file) {
+                errorMessage.style.display = 'none';
+                
+                // 检查文件类型
+                if (!file.name.endsWith('.ipynb')) {
+                    showError('请上传有效的 Jupyter Notebook (.ipynb) 文件');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const content = e.target.result;
+                        notebookData = JSON.parse(content);
+                        
+                        // 显示文件信息
+                        fileInfo.textContent = `文件名: ${file.name} (${formatFileSize(file.size)})`;
+                        
+                        // 处理并显示内容
+                        processNotebook(notebookData);
+                        
+                        // 显示输出区域
+                        outputContainer.style.display = 'block';
+                    } catch (error) {
+                        showError('无法解析 Jupyter Notebook 文件: ' + error.message);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showError('读取文件时发生错误');
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            // 处理Notebook内容
+            function processNotebook(notebook) {
+                // 清空内容区域
+                structuredContent.innerHTML = '';
+                pythonContent.textContent = '';
+                textContent.textContent = '';
+                codeContent.textContent = '';
+                rawContent.textContent = JSON.stringify(notebook, null, 2);
+                
+                let allText = '';
+                let allCode = '';
+                let pythonScript = '';
+                
+                // 检查数据格式是否正确
+                if (!notebook.cells || !Array.isArray(notebook.cells)) {
+                    showError('无效的 Jupyter Notebook 格式');
+                    return;
+                }
+                
+                // 处理每个单元格
+                notebook.cells.forEach((cell, index) => {
+                    const cellType = cell.cell_type;
+                    const source = Array.isArray(cell.source) ? cell.source.join('') : cell.source;
+                    
+                    // 创建结构化视图
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = `notebook-cell ${cellType}-cell`;
+                    
+                    const cellHeader = document.createElement('div');
+                    cellHeader.className = 'cell-header';
+                    
+                    const cellIndex = document.createElement('span');
+                    cellIndex.textContent = `Cell ${index + 1}`;
+                    
+                    const cellTypeSpan = document.createElement('span');
+                    cellTypeSpan.className = `cell-type cell-type-${cellType}`;
+                    cellTypeSpan.textContent = cellType.charAt(0).toUpperCase() + cellType.slice(1);
+                    
+                    cellHeader.appendChild(cellIndex);
+                    cellHeader.appendChild(cellTypeSpan);
+                    
+                    const cellContent = document.createElement('div');
+                    cellContent.className = 'cell-content';
+                    
+                    if (cellType === 'markdown') {
+                        cellContent.innerHTML = `<pre>${escapeHtml(source)}</pre>`;
+                        allText += source + '\n\n';
+                        
+                        // 将markdown内容转换为Python三引号注释
+                        if (pythonScript && !pythonScript.endsWith('\n\n')) {
+                            pythonScript += '\n\n';
+                        }
+                        
+                        // 处理多行markdown，保持格式
+                        const lines = source.split('\n');
+                        if (lines.length === 1) {
+                            pythonScript += `'''\n${lines[0]}\n'''\n\n`;
+                        } else {
+                            pythonScript += '"""\n';
+                            lines.forEach(line => {
+                                pythonScript += line + '\n';
+                            });
+                            if (!pythonScript.endsWith('\n')) {
+                                pythonScript += '\n';
+                            }
+                            pythonScript += '"""\n\n';
+                        }
+                    } else if (cellType === 'code') {
+                        cellContent.innerHTML = `<pre><code>${escapeHtml(source)}</code></pre>`;
+                        allCode += source + '\n\n';
+                        
+                        // 添加代码到Python脚本
+                        if (pythonScript && !pythonScript.endsWith('\n\n')) {
+                            pythonScript += '\n\n';
+                        }
+                        pythonScript += source;
+                        
+                        // 确保代码后有空行
+                        if (!pythonScript.endsWith('\n\n')) {
+                            pythonScript += '\n\n';
+                        }
+                    }
+                    
+                    cellDiv.appendChild(cellHeader);
+                    cellDiv.appendChild(cellContent);
+                    structuredContent.appendChild(cellDiv);
+                });
+                
+                // 设置各Tab的内容
+                pythonContent.textContent = pythonScript.trim();
+                textContent.textContent = allText.trim();
+                codeContent.textContent = allCode.trim();
+            }
+            
+            // 切换标签页
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    this.classList.add('active');
+                    document.getElementById(tabName + 'Tab').classList.add('active');
+                });
+            });
+            
+            // 下载按钮事件
+            document.getElementById('downloadTextBtn').addEventListener('click', function() {
+                downloadContent(textContent.textContent, 'notebook-text.txt', 'text/plain');
+            });
+            
+            document.getElementById('downloadCodeBtn').addEventListener('click', function() {
+                downloadContent(codeContent.textContent, 'notebook-code.txt', 'text/plain');
+            });
+            
+            document.getElementById('downloadPythonBtn').addEventListener('click', function() {
+                downloadContent(pythonContent.textContent, 'notebook-python.py', 'text/x-python');
+            });
+            
+            document.getElementById('downloadRawBtn').addEventListener('click', function() {
+                downloadContent(JSON.stringify(notebookData, null, 2), 'notebook-raw.json', 'application/json');
+            });
+            
+            document.getElementById('downloadHtmlBtn').addEventListener('click', function() {
+                const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Jupyter Notebook 导出</title>
+                    <style>
+                        body { font-family: sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }
+                        .notebook-cell { border: 1px solid #ddd; margin-bottom: 15px; border-radius: 4px; overflow: hidden; }
+                        .cell-header { background-color: #f0f0f0; padding: 8px 15px; font-weight: bold; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+                        .cell-content { padding: 15px; }
+                        .markdown-cell { background-color: #fff; }
+                        .code-cell { background-color: #f8f8f8; }
+                        .cell-type { font-size: 12px; padding: 3px 8px; border-radius: 3px; color: white; }
+                        .cell-type-markdown { background-color: #27ae60; }
+                        .cell-type-code { background-color: #3498db; }
+                        pre { white-space: pre-wrap; margin: 0; }
+                        code { font-family: monospace; }
+                    </style>
+                </head>
+                <body>
+                    ${structuredContent.innerHTML}
+                </body>
+                </html>
+                `;
+                downloadContent(html, 'notebook-export.html', 'text/html');
+            });
+            
+            // 复制按钮事件
+            document.getElementById('copyTextBtn').addEventListener('click', function() {
+                copyToClipboard(textContent.textContent, '文本已复制到剪贴板');
+            });
+            
+            document.getElementById('copyCodeBtn').addEventListener('click', function() {
+                copyToClipboard(codeContent.textContent, '代码已复制到剪贴板');
+            });
+            
+            document.getElementById('copyPythonBtn').addEventListener('click', function() {
+                copyToClipboard(pythonContent.textContent, 'Python代码已复制到剪贴板');
+            });
+            
+            document.getElementById('copyRawBtn').addEventListener('click', function() {
+                copyToClipboard(rawContent.textContent, 'JSON已复制到剪贴板');
+            });
+            
+            // 辅助函数
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                outputContainer.style.display = 'none';
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+                else return (bytes / 1048576).toFixed(2) + ' MB';
+            }
+            
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+            
+            function downloadContent(content, filename, contentType) {
+                const blob = new Blob([content], { type: contentType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            function copyToClipboard(text, message) {
+                navigator.clipboard.writeText(text).then(
+                    function() {
+                        showTooltip(message);
+                    },
+                    function(err) {
+                        showTooltip('复制失败: ' + err);
+                    }
+                );
+            }
+            
+            function showTooltip(message) {
+                tooltip.textContent = message;
+                tooltip.style.opacity = '1';
+                tooltip.style.left = '50%';
+                tooltip.style.top = '20%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+                
+                setTimeout(function() {
+                    tooltip.style.opacity = '0';
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
