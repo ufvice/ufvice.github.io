@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown图片引用移除工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .drop-zone {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .drop-zone:hover, .drop-zone.active {
+            background-color: #ebf5fb;
+            border-color: #2980b9;
+        }
+        .drop-zone-text {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .drop-zone-subtext {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        #fileInput {
+            display: none;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        #results {
+            display: none;
+            margin-top: 20px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .file-info {
+            flex-grow: 1;
+        }
+        .filename {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stats {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .download-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .download-btn:hover {
+            background-color: #27ae60;
+        }
+        .progress-container {
+            margin-top: 10px;
+            display: none;
+        }
+        progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+        }
+        progress::-webkit-progress-bar {
+            background-color: #ecf0f1;
+            border-radius: 5px;
+        }
+        progress::-webkit-progress-value {
+            background-color: #3498db;
+            border-radius: 5px;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Markdown图片引用移除工具</h1>
+    
+    <div class="card">
+        <div id="dropZone" class="drop-zone">
+            <div class="drop-zone-text">拖放Markdown文件到这里</div>
+            <div class="drop-zone-subtext">或者点击选择文件</div>
+            <input type="file" id="fileInput" accept=".md" multiple>
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <progress id="progressBar" value="0" max="100"></progress>
+        </div>
+        
+        <div class="error" id="errorMessage"></div>
+    </div>
+    
+    <div id="results" class="card">
+        <h2>处理结果</h2>
+        <div id="resultsList"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const resultsDiv = document.getElementById('results');
+            const resultsList = document.getElementById('resultsList');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // 处理拖放事件
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('active');
+            });
+            
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('active');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('active');
+                handleFiles(e.dataTransfer.files);
+            });
+            
+            // 点击选择文件
+            dropZone.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', function() {
+                handleFiles(fileInput.files);
+            });
+            
+            // 处理选择的文件
+            function handleFiles(files) {
+                resetUI();
+                
+                const markdownFiles = Array.from(files).filter(file => 
+                    file.name.toLowerCase().endsWith('.md'));
+                
+                if (markdownFiles.length === 0) {
+                    showError('请选择Markdown(.md)文件');
+                    return;
+                }
+                
+                processFiles(markdownFiles);
+            }
+            
+            // 处理Markdown文件
+            async function processFiles(files) {
+                progressContainer.style.display = 'block';
+                progressBar.max = files.length;
+                progressBar.value = 0;
+                
+                let totalImagesRemoved = 0;
+                let totalLinesRemoved = 0;
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    try {
+                        const { text, imagesRemoved, linesRemoved } = await processFile(file);
+                        totalImagesRemoved += imagesRemoved;
+                        totalLinesRemoved += linesRemoved;
+                        
+                        // 创建结果项
+                        const resultItem = createResultItem(
+                            file.name.replace('.md', '.txt'), 
+                            text, 
+                            imagesRemoved, 
+                            linesRemoved
+                        );
+                        resultsList.appendChild(resultItem);
+                    } catch (error) {
+                        console.error(`处理文件 ${file.name} 时出错:`, error);
+                        showError(`处理文件 ${file.name} 失败: ${error.message}`);
+                    }
+                    
+                    progressBar.value = i + 1;
+                }
+                
+                if (files.length > 1) {
+                    const summaryItem = document.createElement('div');
+                    summaryItem.className = 'result-item';
+                    summaryItem.innerHTML = `
+                        <div class="file-info">
+                            <div class="stats">总计处理了 ${files.length} 个文件，移除了 ${totalImagesRemoved} 个图片引用，删除了 ${totalLinesRemoved} 行空行</div>
+                        </div>
+                    `;
+                    resultsList.appendChild(summaryItem);
+                }
+                
+                resultsDiv.style.display = 'block';
+                
+                // 3秒后隐藏进度条
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 3000);
+            }
+            
+            // 处理单个文件
+            function processFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        try {
+                            const content = e.target.result;
+                            const lines = content.split('\n');
+                            const newLines = [];
+                            
+                            // 图片引用的正则表达式
+                            const imagePattern = /!\[.*?\]\(.*?\)/g;
+                            
+                            let imagesRemoved = 0;
+                            let linesRemoved = 0;
+                            
+                            for (const line of lines) {
+                                // 移除图片引用
+                                const newLine = line.replace(imagePattern, '');
+                                
+                                // 如果有图片被移除
+                                if (newLine !== line) {
+                                    imagesRemoved++;
+                                }
+                                
+                                // 检查处理后的行是否为空
+                                if (newLine.trim() === '') {
+                                    linesRemoved++;
+                                    continue;
+                                }
+                                
+                                // 添加非空行到结果中
+                                newLines.push(newLine);
+                            }
+                            
+                            const processedText = newLines.join('\n');
+                            
+                            resolve({
+                                text: processedText,
+                                imagesRemoved: imagesRemoved,
+                                linesRemoved: linesRemoved
+                            });
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    
+                    reader.onerror = function() {
+                        reject(new Error('文件读取失败'));
+                    };
+                    
+                    reader.readAsText(file);
+                });
+            }
+            
+            // 创建结果项
+            function createResultItem(filename, content, imagesRemoved, linesRemoved) {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                
+                resultItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="filename">${filename}</div>
+                        <div class="stats">移除了 ${imagesRemoved} 个图片引用，删除了 ${linesRemoved} 行空行</div>
+                    </div>
+                    <button class="download-btn">下载</button>
+                `;
+                
+                const downloadBtn = resultItem.querySelector('.download-btn');
+                downloadBtn.addEventListener('click', function() {
+                    downloadText(content, filename);
+                });
+                
+                return resultItem;
+            }
+            
+            // 下载文本文件
+            function downloadText(text, filename) {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.style.display = 'none';
+                
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
+            
+            // 显示错误信息
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            // 重置UI
+            function resetUI() {
+                errorMessage.style.display = 'none';
+                resultsList.innerHTML = '';
+                fileInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

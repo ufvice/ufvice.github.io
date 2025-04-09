@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaTeX to Markdown Converter</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --bg-color: #f9f9f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .description {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .converter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .text-areas {
+            display: flex;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .text-areas {
+                flex-direction: column;
+            }
+        }
+
+        .text-area-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .drop-zone p {
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .button.success {
+            background-color: var(--success-color);
+        }
+
+        .button.secondary {
+            background-color: #95a5a6;
+        }
+
+        .button.secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            background-color: var(--success-color);
+            color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification.error {
+            background-color: var(--error-color);
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LaTeX to Markdown Converter</h1>
+            <p class="description">将LaTeX数学公式标记转换为Markdown格式</p>
+        </header>
+
+        <div class="converter-container">
+            <div class="drop-zone" id="dropZone">
+                <p>将文件拖放到这里，或点击选择文件</p>
+                <input type="file" id="fileInput" accept=".md,.txt" style="display: none;">
+                <button class="button" id="browseButton">选择文件</button>
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+
+            <div class="text-areas">
+                <div class="text-area-container">
+                    <div class="label">输入（LaTeX 格式）</div>
+                    <textarea id="inputText" placeholder="输入包含LaTeX公式的文本，例如：\[ E = mc^2 \]"></textarea>
+                </div>
+                <div class="text-area-container">
+                    <div class="label">输出（Markdown 格式）</div>
+                    <textarea id="outputText" placeholder="转换后的结果将显示在这里..." readonly></textarea>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="button" id="convertButton">转换</button>
+                <button class="button" id="copyButton">复制结果</button>
+                <button class="button secondary" id="downloadButton">下载结果</button>
+                <button class="button secondary" id="clearButton">清除</button>
+            </div>
+        </div>
+
+        <div class="notification" id="notification"></div>
+
+        <footer>
+            <p>LaTeX to Markdown Converter - 将数学公式从LaTeX格式转换为Markdown格式</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const browseButton = document.getElementById('browseButton');
+            const fileInfo = document.getElementById('fileInfo');
+            const inputText = document.getElementById('inputText');
+            const outputText = document.getElementById('outputText');
+            const convertButton = document.getElementById('convertButton');
+            const copyButton = document.getElementById('copyButton');
+            const downloadButton = document.getElementById('downloadButton');
+            const clearButton = document.getElementById('clearButton');
+            const notification = document.getElementById('notification');
+
+            let currentFileName = '';
+            
+            // 转换函数：将LaTeX公式转换为Markdown格式
+            function convertLatexToMarkdown(text) {
+                // 第一轮：将显示公式 \[ ... \] 替换为 $$ ... $$
+                let textConverted = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, p1) => {
+                    return `\n$$\n${p1.trim()}\n$$\n`;
+                });
+                
+                // 第二轮：将行内公式 \( ... \) 替换为 $ ... $
+                textConverted = textConverted.replace(/\\\(([\s\S]*?)\\\)/g, (match, p1) => {
+                    return `$${p1.trim()}$`;
+                });
+                
+                return textConverted;
+            }
+            
+            // 显示通知
+            function showNotification(message, isError = false) {
+                notification.textContent = message;
+                notification.classList.toggle('error', isError);
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+            
+            // 处理文件选择
+            function handleFileSelect(file) {
+                if (!file) return;
+                
+                // 验证文件扩展名
+                const fileName = file.name;
+                const fileExt = fileName.split('.').pop().toLowerCase();
+                
+                if (!['md', 'txt'].includes(fileExt)) {
+                    showNotification('错误: 文件必须是.md或.txt格式', true);
+                    return;
+                }
+                
+                currentFileName = fileName;
+                fileInfo.textContent = `已选择文件: ${fileName}`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    inputText.value = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+            
+            // 执行转换
+            function performConversion() {
+                const text = inputText.value;
+                if (!text.trim()) {
+                    showNotification('请输入要转换的文本', true);
+                    return;
+                }
+                
+                const convertedText = convertLatexToMarkdown(text);
+                outputText.value = convertedText;
+                showNotification('转换完成');
+            }
+            
+            // 复制结果到剪贴板
+            function copyToClipboard() {
+                if (!outputText.value.trim()) {
+                    showNotification('没有可复制的内容', true);
+                    return;
+                }
+                
+                outputText.select();
+                document.execCommand('copy');
+                showNotification('已复制到剪贴板');
+            }
+            
+            // 下载结果
+            function downloadResult() {
+                if (!outputText.value.trim()) {
+                    showNotification('没有可下载的内容', true);
+                    return;
+                }
+                
+                const blob = new Blob([outputText.value], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                // 如果有原始文件名，使用相同的名称
+                let downloadFileName = currentFileName || 'converted.md';
+                
+                // 确保扩展名是.md或.txt
+                if (!downloadFileName.toLowerCase().endsWith('.md') && 
+                    !downloadFileName.toLowerCase().endsWith('.txt')) {
+                    downloadFileName += '.md';
+                }
+                
+                a.href = url;
+                a.download = downloadFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification(`已下载: ${downloadFileName}`);
+            }
+            
+            // 清除所有内容
+            function clearAll() {
+                inputText.value = '';
+                outputText.value = '';
+                fileInfo.textContent = '';
+                currentFileName = '';
+                showNotification('已清除所有内容');
+            }
+            
+            // 事件监听：拖拽
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // 事件监听：浏览文件
+            browseButton.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length > 0) {
+                    handleFileSelect(fileInput.files[0]);
+                }
+            });
+            
+            // 事件监听：按钮点击
+            convertButton.addEventListener('click', performConversion);
+            copyButton.addEventListener('click', copyToClipboard);
+            downloadButton.addEventListener('click', downloadResult);
+            clearButton.addEventListener('click', clearAll);
+        });
+    </script>
+</body>
+</html>
