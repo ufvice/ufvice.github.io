@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正则表达式文本处理工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .file-input {
+            margin-bottom: 10px;
+        }
+        .input-area, .regex-area, .output-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            font-family: monospace;
+        }
+        .regex-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .regex-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        .preview {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 150px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .highlight {
+            background-color: #ffeb3b;
+            padding: 2px 0;
+        }
+        .replaced {
+            background-color: #81c784;
+            padding: 2px 0;
+        }
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .flags-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .error {
+            color: #f44336;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .regex-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>正则表达式文本处理工具</h1>
+        
+        <div class="section input-area">
+            <div class="content-header">
+                <label for="input-text">输入文本</label>
+                <div class="file-input">
+                    <input type="file" id="file-upload" accept="text/*">
+                </div>
+            </div>
+            <textarea id="input-text" placeholder="在此输入或粘贴文本，或者上传文本文件"></textarea>
+        </div>
+        
+        <div class="section regex-area">
+            <div class="regex-controls">
+                <div class="regex-group">
+                    <label for="regex-pattern">正则表达式</label>
+                    <input type="text" id="regex-pattern" placeholder="例如: \b\w{4}\b">
+                    <div id="regex-error" class="error hidden"></div>
+                </div>
+                
+                <div class="regex-group">
+                    <label for="replacement">替换为</label>
+                    <input type="text" id="replacement" placeholder="例如: *$&*">
+                </div>
+                
+                <div class="flags-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="global-flag" checked>
+                        <label for="global-flag">全局 (g)</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="case-insensitive">
+                        <label for="case-insensitive">忽略大小写 (i)</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="multiline">
+                        <label for="multiline">多行 (m)</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="process-btn">处理文本</button>
+            </div>
+        </div>
+        
+        <div class="section output-area">
+            <div class="content-header">
+                <label>预览 (高亮匹配和替换)</label>
+                <div class="action-buttons">
+                    <button id="copy-btn">复制结果</button>
+                    <button id="download-btn">下载结果</button>
+                </div>
+            </div>
+            
+            <div class="preview-container">
+                <div class="preview" id="input-preview"></div>
+            </div>
+            
+            <label>替换后的结果</label>
+            <div class="preview-container">
+                <div class="preview" id="output-preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputText = document.getElementById('input-text');
+            const regexPattern = document.getElementById('regex-pattern');
+            const replacement = document.getElementById('replacement');
+            const globalFlag = document.getElementById('global-flag');
+            const caseInsensitive = document.getElementById('case-insensitive');
+            const multiline = document.getElementById('multiline');
+            const processBtn = document.getElementById('process-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const fileUpload = document.getElementById('file-upload');
+            const inputPreview = document.getElementById('input-preview');
+            const outputPreview = document.getElementById('output-preview');
+            const regexError = document.getElementById('regex-error');
+            
+            // 文件上传处理
+            fileUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    inputText.value = e.target.result;
+                };
+                reader.readAsText(file);
+            });
+            
+            // 处理文本按钮
+            processBtn.addEventListener('click', processText);
+            
+            // 复制结果
+            copyBtn.addEventListener('click', function() {
+                const outputText = getPlainOutput();
+                navigator.clipboard.writeText(outputText).then(() => {
+                    alert('结果已复制到剪贴板');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    // 备用复制方法
+                    const textArea = document.createElement('textarea');
+                    textArea.value = outputText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('结果已复制到剪贴板');
+                });
+            });
+            
+            // 下载结果
+            downloadBtn.addEventListener('click', function() {
+                const outputText = getPlainOutput();
+                const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'processed_text.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // 获取纯文本输出
+            function getPlainOutput() {
+                const text = inputText.value;
+                try {
+                    const flags = getRegexFlags();
+                    const regex = new RegExp(regexPattern.value, flags);
+                    return text.replace(regex, replacement.value);
+                } catch (e) {
+                    return text;
+                }
+            }
+            
+            // 处理文本
+            function processText() {
+                const text = inputText.value;
+                if (!text) {
+                    alert('请输入文本');
+                    return;
+                }
+                
+                try {
+                    // 获取正则表达式标志
+                    const flags = getRegexFlags();
+                    const regex = new RegExp(regexPattern.value, flags);
+                    
+                    // 高亮原始输入中的匹配
+                    inputPreview.innerHTML = highlightMatches(text, regex);
+                    
+                    // 高亮替换后输出中的更改
+                    outputPreview.innerHTML = highlightReplacements(text, regex, replacement.value);
+                    
+                    // 隐藏错误提示
+                    regexError.classList.add('hidden');
+                } catch (e) {
+                    // 显示正则表达式错误
+                    regexError.textContent = `正则表达式错误: ${e.message}`;
+                    regexError.classList.remove('hidden');
+                    
+                    // 清空预览
+                    inputPreview.textContent = text;
+                    outputPreview.textContent = text;
+                }
+            }
+            
+            // 获取正则表达式标志
+            function getRegexFlags() {
+                let flags = '';
+                if (globalFlag.checked) flags += 'g';
+                if (caseInsensitive.checked) flags += 'i';
+                if (multiline.checked) flags += 'm';
+                return flags;
+            }
+            
+            // 在原始文本中高亮匹配项
+            function highlightMatches(text, regex) {
+                // 保存原始正则表达式
+                const originalRegex = new RegExp(regex);
+                
+                // 确保有'g'标志以获取所有匹配项
+                const globalRegex = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags + 'g');
+                
+                let result = text;
+                let matches = [];
+                let match;
+                
+                // 收集所有匹配项及其位置
+                while ((match = globalRegex.exec(text)) !== null) {
+                    matches.push({
+                        start: match.index,
+                        end: match.index + match[0].length,
+                        text: match[0]
+                    });
+                    
+                    // 防止无限循环
+                    if (!regex.flags.includes('g')) break;
+                }
+                
+                // 从后向前替换，以避免位置偏移问题
+                matches.reverse().forEach(match => {
+                    const before = result.substring(0, match.start);
+                    const highlighted = `<span class="highlight">${escapeHtml(match.text)}</span>`;
+                    const after = result.substring(match.end);
+                    result = before + highlighted + after;
+                });
+                
+                return result;
+            }
+            
+            // 在输出文本中高亮被替换的部分
+            function highlightReplacements(text, regex, replaceWith) {
+                // 保存原始正则表达式，以及全局版本
+                const globalRegex = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags + 'g');
+                
+                let result = '';
+                let lastIndex = 0;
+                let match;
+                
+                // 处理每个匹配项
+                while ((match = globalRegex.exec(text)) !== null) {
+                    // 添加匹配项之前的文本
+                    result += escapeHtml(text.substring(lastIndex, match.index));
+                    
+                    // 计算替换后的文本
+                    let replacement = replaceWith;
+                    
+                    // 处理替换字符串中的特殊序列
+                    replacement = replacement.replace(/\$&/g, match[0]);
+                    for (let i = 1; i < match.length; i++) {
+                        const group = match[i] === undefined ? '' : match[i];
+                        replacement = replacement.replace(new RegExp('\\$' + i, 'g'), group);
+                    }
+                    replacement = replacement.replace(/\$`/g, text.substring(0, match.index));
+                    replacement = replacement.replace(/\$'/g, text.substring(match.index + match[0].length));
+                    
+                    // 添加高亮的替换文本
+                    result += `<span class="replaced">${escapeHtml(replacement)}</span>`;
+                    
+                    lastIndex = match.index + match[0].length;
+                    
+                    // 防止无限循环
+                    if (!regex.flags.includes('g')) break;
+                }
+                
+                // 添加最后一个匹配项之后的文本
+                result += escapeHtml(text.substring(lastIndex));
+                
+                return result;
+            }
+            
+            // HTML转义
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        });
+    </script>
+</body>
+</html>
